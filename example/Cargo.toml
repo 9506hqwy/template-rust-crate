@@ -1,0 +1,15 @@
+[package]
+name = "example"
+keywords = ["sample"]
+# https://crates.io/category_slugs
+categories = ["development-tools"]
+
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+license.workspace = true
+
+[lib]
+crate-type = ["cdylib", "lib", "staticlib"]

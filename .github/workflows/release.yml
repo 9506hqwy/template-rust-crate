@@ -1,0 +1,97 @@
+name: Release
+
+on:
+  push:
+    tags: [ '**' ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Create Artifacts
+      run: |
+        cargo build --release --workspace --all-features --verbose
+        cargo build --release --workspace --all-features --examples --verbose
+
+    - name: Create Archive (Ubuntu)
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        RUST_TARGET=`rustup show active-toolchain | sed -e 's/[^-]*-\(.*\)\s.*/\1/'`
+
+        CUR_DIR=$(pwd)
+        LIB_DIR='./target/release'
+        if find ${LIB_DIR} -maxdepth 1 -type f \( -name '*.so' -o -name '*.a' \) | grep . --quiet; then
+            pushd "$LIB_DIR"
+            tar -zcf "${CUR_DIR}/artifacts/${RUST_TARGET}.tar.gz" *.so *.a
+            popd
+        fi
+
+        EXAMPLE_DIR='./target/release/examples/'
+        for EXAMPLE in $(find "$EXAMPLE_DIR" -type f -executable)
+        do
+            BASE_NAME=$(basename "${EXAMPLE}")
+            tar -C "$EXAMPLE_DIR" -zcf "./artifacts/${BASE_NAME}-${RUST_TARGET}.tar.gz" "$BASE_NAME"
+        done
+
+        echo "RUST_TARGET=${RUST_TARGET}" >> $GITHUB_ENV
+
+    - name: Create Archive (Windows)
+      if: matrix.os == 'windows-latest'
+      run: |
+        $RUST_TARGET = $(rustup show active-toolchain) -replace '[^-]*-(?<host>.*)\s.*', '${host}'
+
+        $TARGETS = @(
+          'target\release\*.exe',
+          'target\release\*.dll',
+          'target\release\*.exp',
+          'target\release\*.lib'
+        )
+        $LIBS = @(Get-Item -Path $TARGETS)
+        if ($LIBS.Length -gt 0) {
+            Compress-Archive -Path $LIBS -DestinationPath ".\artifacts\${RUST_TARGET}.zip"
+        }
+
+        Get-Item -Path 'target\release\examples\*.exe' |% {
+            $Name = $_.BaseName;
+            Compress-Archive -Path $_ -DestinationPath ".\artifacts\${Name}-${RUST_TARGET}.zip";
+        }
+
+        Write-Output "RUST_TARGET=$RUST_TARGET" >> $env:GITHUB_ENV
+
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: ${{ env.RUST_TARGET }}
+        path: artifacts/
+        retention-days: 1
+
+  release:
+
+    needs: build
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - uses: actions/download-artifact@v3
+      with:
+        path: artifacts
+
+    - name: Create Release
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        gh config set prompt disabled
+        gh release create ${GITHUB_REF_NAME} ./artifacts/*/*  -t v${GITHUB_REF_NAME} -d

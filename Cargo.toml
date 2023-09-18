@@ -1,0 +1,17 @@
+[workspace]
+resolver = "2"
+members = [
+  "example"
+]
+
+[workspace.package]
+version = "0.1.0"
+authors = ["9506hqwy"]
+edition = "2021"
+rust-version = "1.72"
+repository = "https://github.com/9506hqwy/template-rust-crate"
+license = "MIT OR Apache-2.0"
+
+[profile.release]
+strip = "symbols"
+lto = true
