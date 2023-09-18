@@ -29,6 +29,8 @@ jobs:
       run: |
         RUST_TARGET=`rustup show active-toolchain | sed -e 's/[^-]*-\(.*\)\s.*/\1/'`
 
+        mkdir artifacts
+
         CUR_DIR=$(pwd)
         LIB_DIR='./target/release'
         if find ${LIB_DIR} -maxdepth 1 -type f \( -name '*.so' -o -name '*.a' \) | grep . --quiet; then
@@ -50,6 +52,8 @@ jobs:
       if: matrix.os == 'windows-latest'
       run: |
         $RUST_TARGET = $(rustup show active-toolchain) -replace '[^-]*-(?<host>.*)\s.*', '${host}'
+
+        New-Item -Type Directory artifacts
 
         $TARGETS = @(
           'target\release\*.exe',
