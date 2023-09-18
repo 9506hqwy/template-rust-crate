@@ -135,7 +135,9 @@ jobs:
         for EXAMPLE in $(find "$EXAMPLE_DIR" -type f -executable)
         do
             BASE_NAME=$(basename "${EXAMPLE}")
-            tar -C "$EXAMPLE_DIR" -zcf "./artifacts/${BASE_NAME}-${RUST_TARGET}.tar.gz" "$BASE_NAME"
+            if [[ ! $BASE_NAME =~ -[a-fA-F0-9]{16}$ ]] ; then
+                tar -C "$EXAMPLE_DIR" -zcf "./artifacts/${BASE_NAME}-${RUST_TARGET}.tar.gz" "$BASE_NAME"
+            fi
         done
 
         echo "RUST_TARGET=${RUST_TARGET}" >> $GITHUB_ENV
