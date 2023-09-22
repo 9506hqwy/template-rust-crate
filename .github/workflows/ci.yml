@@ -159,6 +159,10 @@ jobs:
         }
 
         Get-Item -Path 'target\release\examples\*.exe' |% {
+            if ($_.Name.Contains('_') -And (Test-Path (Join-Path $_.Directory $_.Name.Replace('_', '-')))) {
+                return
+            }
+
             $Name = $_.BaseName;
             Compress-Archive -Path $_ -DestinationPath ".\artifacts\${Name}-${RUST_TARGET}.zip";
         }
