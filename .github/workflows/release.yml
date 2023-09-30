@@ -33,11 +33,12 @@ jobs:
 
         CUR_DIR=$(pwd)
         LIB_DIR='./target/release'
-        if find ${LIB_DIR} -maxdepth 1 -type f \( -name '*.so' -o -name '*.a' \) | grep . --quiet; then
-            pushd "$LIB_DIR"
-            tar -zcf "${CUR_DIR}/artifacts/${RUST_TARGET}.tar.gz" *.so *.a
-            popd
+        pushd "$LIB_DIR"
+        FILES=$(find . -maxdepth 1 -type f \( -name '*.so' -o -name '*.a' -o -executable \))
+        if [[ -n $FILES ]] ; then
+            tar -zcf "${CUR_DIR}/artifacts/${RUST_TARGET}.tar.gz" $FILES
         fi
+        popd
 
         EXAMPLE_DIR='./target/release/examples/'
         for EXAMPLE in $(find "$EXAMPLE_DIR" -type f -executable)

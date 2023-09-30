@@ -44,7 +44,8 @@ jobs:
         dotnet tool install -g dotnet-reportgenerator-globaltool
 
         TARGET_HOST=$(rustup show active-toolchain | sed -e 's/[^-]*-\(.*\)\s.*/\1/')
-        TEST_BIN=$(cargo test --no-run 2>&1 | grep Executable | cut -d '(' -f 2 | cut -d ')' -f 1)
+        TEST_BIN=($(cargo test --no-run 2>&1 | grep Executable | cut -d '(' -f 2 | cut -d ')' -f 1))
+        OBJECT_ARGS=$(printf '%s\n' ${TEST_BIN[@]} | xargs -i echo --object={})
 
         $(rustc --print sysroot)/lib/rustlib/${TARGET_HOST}/bin/llvm-profdata merge \
             --sparse \
@@ -54,7 +55,7 @@ jobs:
         $(rustc --print sysroot)/lib/rustlib/${TARGET_HOST}/bin/llvm-cov export \
             --ignore-filename-regex='library/std/src' \
             --ignore-filename-regex='cargo/registry/src' \
-            --object=${TEST_BIN} \
+            ${OBJECT_ARGS} \
             --instr-profile=default.profdata \
             --format=lcov \
             > coverage.lcov
@@ -67,7 +68,7 @@ jobs:
         $(rustc --print sysroot)/lib/rustlib/${TARGET_HOST}/bin/llvm-cov report \
             --ignore-filename-regex='library/std/src' \
             --ignore-filename-regex='cargo/registry/src' \
-            --object=${TEST_BIN} \
+            ${OBJECT_ARGS} \
             --instr-profile=default.profdata
 
     - name: Generate coverage report (Windows)
@@ -80,6 +81,7 @@ jobs:
 
         $TARGET_HOST = $(rustup show active-toolchain) -replace '[^-]*-(?<host>.*)\s.*', '${host}'
         $TEST_BIN = ($(cargo test --no-run 2>&1) |? { "$_" -like '*Executable*' }) -replace '.*\((?<path>.*)\).*', '${path}'
+        $OBJECT_ARGS = @($TEST_BIN) |% { "--object=$_" }
 
         $profiles = @(Get-ChildItem -Path 'default_*.profraw' -Recurse)
 
@@ -91,7 +93,7 @@ jobs:
         & "$(rustc --print sysroot)\lib\rustlib\${TARGET_HOST}\bin\llvm-cov.exe" export `
             --ignore-filename-regex='library\\std\\src' `
             --ignore-filename-regex='cargo\\registry\\src' `
-            --object=${TEST_BIN} `
+            ${OBJECT_ARGS} `
             --instr-profile=default.profdata `
             --format=lcov `
             > coverage.lcov
@@ -104,7 +106,7 @@ jobs:
         & "$(rustc --print sysroot)\lib\rustlib\${TARGET_HOST}\bin\llvm-cov.exe" report `
             --ignore-filename-regex='library\\std\\src' `
             --ignore-filename-regex='cargo\\registry\\src' `
-            --object=${TEST_BIN} `
+            ${OBJECT_ARGS} `
             --instr-profile=default.profdata
 
     - name: Report coverage (Ubuntu)
@@ -131,11 +133,12 @@ jobs:
 
         CUR_DIR=$(pwd)
         LIB_DIR='./target/release'
-        if find ${LIB_DIR} -maxdepth 1 -type f \( -name '*.so' -o -name '*.a' \) | grep . --quiet; then
-            pushd "$LIB_DIR"
-            tar -zcf "${CUR_DIR}/artifacts/${RUST_TARGET}.tar.gz" *.so *.a
-            popd
+        pushd "$LIB_DIR"
+        FILES=$(find . -maxdepth 1 -type f \( -name '*.so' -o -name '*.a' -o -executable \))
+        if [[ -n $FILES ]] ; then
+            tar -zcf "${CUR_DIR}/artifacts/${RUST_TARGET}.tar.gz" $FILES
         fi
+        popd
 
         EXAMPLE_DIR='./target/release/examples/'
         for EXAMPLE in $(find "$EXAMPLE_DIR" -type f -executable)
