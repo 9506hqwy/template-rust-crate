@@ -20,22 +20,22 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Check format
+    - name: Check Format
       if: matrix.os == 'ubuntu-latest'
       run: cargo fmt --all --check
 
-    - name: Check lint
+    - name: Check Lint
       if: matrix.os == 'ubuntu-latest'
       run: |
         cargo clippy --fix
         git diff --exit-code --quiet
 
-    - name: Run tests
+    - name: Run Tests
       env:
         RUSTFLAGS: '-C instrument-coverage'
       run: cargo test --verbose
 
-    - name: Generate coverage report (Ubuntu)
+    - name: Generate Coverage Report (Ubuntu)
       if: matrix.os == 'ubuntu-latest'
       env:
         RUSTFLAGS: '-C instrument-coverage'
@@ -47,10 +47,12 @@ jobs:
         TEST_BIN=($(cargo test --no-run 2>&1 | grep Executable | cut -d '(' -f 2 | cut -d ')' -f 1))
         OBJECT_ARGS=$(printf '%s\n' ${TEST_BIN[@]} | xargs -i echo --object={})
 
+        profiles=$(find . -name 'default_*.profraw')
+
         $(rustc --print sysroot)/lib/rustlib/${TARGET_HOST}/bin/llvm-profdata merge \
             --sparse \
             --output=default.profdata \
-            **/default_*.profraw
+            $profiles
 
         $(rustc --print sysroot)/lib/rustlib/${TARGET_HOST}/bin/llvm-cov export \
             --ignore-filename-regex='library/std/src' \
@@ -71,7 +73,7 @@ jobs:
             ${OBJECT_ARGS} \
             --instr-profile=default.profdata
 
-    - name: Generate coverage report (Windows)
+    - name: Generate Coverage Report (Windows)
       if: matrix.os == 'windows-latest'
       env:
         RUSTFLAGS: '-C instrument-coverage'
@@ -109,13 +111,13 @@ jobs:
             ${OBJECT_ARGS} `
             --instr-profile=default.profdata
 
-    - name: Report coverage (Ubuntu)
+    - name: Report Coverage (Ubuntu)
       if: matrix.os == 'ubuntu-latest'
       run: |
         cat "./artifacts/Summary.txt"
         cat "./artifacts/SummaryGithub.md" > $GITHUB_STEP_SUMMARY
 
-    - name: Report coverage (Windows)
+    - name: Report Coverage (Windows)
       if: matrix.os == 'windows-latest'
       run: |
         Get-Content ".\artifacts\Summary.txt"
