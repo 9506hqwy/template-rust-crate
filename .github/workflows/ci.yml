@@ -61,6 +61,9 @@ jobs:
 
         reportgenerator -reports:coverage.lcov -targetdir:"./artifacts" -reporttypes:"MarkdownSummaryGithub;TextSummary"
 
+        reportgenerator -reports:coverage.lcov -targetdir:"./coverage_html" -reporttypes:"Html"
+        tar -C coverage_html -zcf ./artifacts/coverage.tar.gz .
+
         $(rustc --print sysroot)/lib/rustlib/${TARGET_HOST}/bin/llvm-cov report \
             --ignore-filename-regex='library/std/src' \
             --ignore-filename-regex='cargo/registry/src' \
@@ -94,6 +97,9 @@ jobs:
             > coverage.lcov
 
         reportgenerator -reports:coverage.lcov -targetdir:".\artifacts" -reporttypes:"MarkdownSummaryGithub;TextSummary"
+
+        reportgenerator -reports:coverage.lcov -targetdir:".\coverage_html" -reporttypes:"Html"
+        Compress-Archive -Path 'coverage_html\*' -DestinationPath ".\artifacts\coverage.zip"
 
         & "$(rustc --print sysroot)\lib\rustlib\${TARGET_HOST}\bin\llvm-cov.exe" report `
             --ignore-filename-regex='library\\std\\src' `
