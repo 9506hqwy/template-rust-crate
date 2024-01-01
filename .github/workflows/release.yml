@@ -81,7 +81,7 @@ jobs:
         Write-Output "RUST_TARGET=$RUST_TARGET" >> $env:GITHUB_ENV
 
     - name: Upload Artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: ${{ env.RUST_TARGET }}
         path: artifacts/
