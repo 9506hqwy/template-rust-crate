@@ -127,6 +127,7 @@ jobs:
       run: |
         cargo build --release --workspace --all-features --verbose
         cargo build --release --workspace --all-features --examples --verbose
+        cargo doc --workspace --all-features --verbose
 
     - name: Create Archive (Ubuntu)
       if: matrix.os == 'ubuntu-latest'
@@ -150,6 +151,10 @@ jobs:
                 tar -C "$EXAMPLE_DIR" -zcf "./artifacts/${BASE_NAME}-${RUST_TARGET}.tar.gz" "$BASE_NAME"
             fi
         done
+
+        pushd "./target/doc"
+        tar -zcf "${CUR_DIR}/artifacts/help-${RUST_TARGET}.tar.gz" *
+        popd
 
         echo "RUST_TARGET=${RUST_TARGET}" >> $GITHUB_ENV
 
@@ -177,6 +182,8 @@ jobs:
             $Name = $_.BaseName;
             Compress-Archive -Path $_ -DestinationPath ".\artifacts\${Name}-${RUST_TARGET}.zip";
         }
+
+        Compress-Archive -Path 'target\doc\*' -DestinationPath ".\artifacts\help-${RUST_TARGET}.zip"
 
         Write-Output "RUST_TARGET=$RUST_TARGET" >> $env:GITHUB_ENV
 
