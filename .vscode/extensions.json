@@ -1,6 +1,7 @@
 {
     "recommendations": [
         "editorconfig.editorconfig",
+        "ms-vscode-remote.remote-containers",
         "rust-lang.rust-analyzer",
         "tamasfe.even-better-toml",
         "vadimcn.vscode-lldb"
