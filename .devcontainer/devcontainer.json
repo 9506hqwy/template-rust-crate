@@ -8,6 +8,10 @@
     "runArgs": [
         "--userns=keep-id"
     ],
+    "securityOpt": [
+        "label=disable",
+        "seccomp=unconfined"
+    ],
     // Uncomment to connect as root instead.
     //"remoteUser": "root",
     // Use default container `USER`,
