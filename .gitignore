@@ -4,7 +4,9 @@ target/
 
 *~
 *.profraw
+perf.data*
 
 Cargo.lock
 coverage.lcov
 default.profdata
+flamegraph.svg
