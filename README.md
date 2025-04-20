@@ -22,6 +22,20 @@ Generate frame graph.
 cargo flamegraph --example main
 ```
 
+### Memory Profile
+
+Gather data.
+
+```sh
+LD_PRELOAD=/usr/local/lib/libbytehound.so  <executable>
+```
+
+Display data.
+
+```sh
+bytehound server memory-profiling_*.dat
+```
+
 ## Testing
 
 Execute test code.

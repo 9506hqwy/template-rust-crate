@@ -10,3 +10,4 @@ Cargo.lock
 coverage.lcov
 default.profdata
 flamegraph.svg
+memory-profiling*

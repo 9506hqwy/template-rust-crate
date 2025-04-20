@@ -16,7 +16,8 @@
     "onCreateCommand": "/bin/bash ${containerWorkspaceFolder}/.devcontainer/post-create.sh",
     // Set session environment variables.
     "remoteEnv": {
-        "CARGO_PROFILE_RELEASE_DEBUG": "true"
+        "CARGO_PROFILE_RELEASE_DEBUG": "true",
+        "MEMORY_PROFILER_LOG": "debug"
     },
     // Uncomment to connect as root instead.
     //"remoteUser": "root",
