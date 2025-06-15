@@ -1,0 +1,17 @@
+pre-commit:
+  jobs:
+    - name: Rust Format
+      glob: "*.rs"
+      run: cargo fmt --all --check
+
+    - name: Rust Lint
+      glob: "*.rs"
+      run: cargo clippy --all-targets -- -Dwarnings
+
+    - name: Rust Test
+      glob: "*.rs"
+      run: cargo test
+
+    - name: Actions Lint
+      glob: ".github/workflows/*.yml"
+      run: actionlint

@@ -32,12 +32,16 @@ jobs:
 
         mkdir artifacts
 
+        cargo install cargo-about
+        cargo about generate -o target/license.html about.hbs
+
         CUR_DIR=$(pwd)
         LIB_DIR='./target/release'
         pushd "$LIB_DIR"
         FILES=$(find . -maxdepth 1 -type f \( -name '*.so' -o -name '*.a' -o -executable \))
         if [[ -n $FILES ]] ; then
-            tar -zcf "${CUR_DIR}/artifacts/${RUST_TARGET}.tar.gz" $FILES
+            cp -f "${CUR_DIR}/target/license.html" .
+            tar -zcf "${CUR_DIR}/artifacts/${RUST_TARGET}.tar.gz" $FILES license.html
         fi
         popd
 
@@ -46,7 +50,8 @@ jobs:
         do
             BASE_NAME=$(basename "${EXAMPLE}")
             if [[ ! $BASE_NAME =~ -[a-fA-F0-9]{16}$ ]] ; then
-                tar -C "$EXAMPLE_DIR" -zcf "./artifacts/${BASE_NAME}-${RUST_TARGET}.tar.gz" "$BASE_NAME"
+                cp -f "${CUR_DIR}/target/license.html" "$EXAMPLE_DIR"
+                tar -C "$EXAMPLE_DIR" -zcf "./artifacts/${BASE_NAME}-${RUST_TARGET}.tar.gz" "$BASE_NAME" license.html
             fi
         done
 
@@ -63,6 +68,9 @@ jobs:
 
         New-Item -Type Directory artifacts
 
+        cargo install cargo-about
+        cargo about generate -o target\license.html about.hbs
+
         $TARGETS = @(
           'target\release\*.exe',
           'target\release\*.dll',
@@ -71,6 +79,7 @@ jobs:
         )
         $LIBS = @(Get-Item -Path $TARGETS)
         if ($LIBS.Length -gt 0) {
+            $LIBS += 'target\license.html'
             Compress-Archive -Path $LIBS -DestinationPath ".\artifacts\${RUST_TARGET}.zip"
         }
 
@@ -79,8 +88,9 @@ jobs:
                 return
             }
 
+            $EXE = @($_.FullName,'target\license.html')
             $Name = $_.BaseName;
-            Compress-Archive -Path $_ -DestinationPath ".\artifacts\${Name}-${RUST_TARGET}.zip";
+            Compress-Archive -Path $EXE -DestinationPath ".\artifacts\${Name}-${RUST_TARGET}.zip";
         }
 
         Compress-Archive -Path 'target\doc\*' -DestinationPath ".\artifacts\help-${RUST_TARGET}.zip"

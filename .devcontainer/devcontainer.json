@@ -13,7 +13,7 @@
         "seccomp=unconfined"
     ],
     // Use 'onCreateCommand' to run commands after the container is created.
-    "onCreateCommand": "/bin/bash ${containerWorkspaceFolder}/.devcontainer/post-create.sh",
+    "onCreateCommand": "/bin/bash ${containerWorkspaceFolder}/.devcontainer/on-create.sh",
     // Set session environment variables.
     "remoteEnv": {
         "CARGO_PROFILE_RELEASE_DEBUG": "true",

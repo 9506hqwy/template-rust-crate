@@ -4,6 +4,7 @@ on:
   push:
     branches: [ main ]
     tags-ignore: [ '**' ]
+  pull_request:
 
 env:
   CARGO_TERM_COLOR: always
@@ -33,6 +34,7 @@ jobs:
     - name: Run Tests
       env:
         RUSTFLAGS: '-C instrument-coverage'
+        LLVM_PROFILE_FILE: '${{ github.workspace }}/target/profiles/default_%m_%p.profraw'
       run: cargo test --verbose
 
     - name: Generate Coverage Report (Ubuntu)
@@ -40,76 +42,80 @@ jobs:
       env:
         RUSTFLAGS: '-C instrument-coverage'
       run: |
-        rustup component add llvm-tools-preview
+        rustup component add llvm-tools
         dotnet tool install -g dotnet-reportgenerator-globaltool
 
         TARGET_HOST=$(rustup show active-toolchain | sed -e 's/[^-]*-\(.*\)\s.*/\1/')
         TEST_BIN=($(cargo test --no-run 2>&1 | grep Executable | cut -d '(' -f 2 | cut -d ')' -f 1))
         OBJECT_ARGS=$(printf '%s\n' ${TEST_BIN[@]} | xargs -i echo --object={})
 
-        profiles=$(find . -name 'default_*.profraw')
+        profiles=$(find ./target/profiles -name 'default_*.profraw')
 
-        $(rustc --print sysroot)/lib/rustlib/${TARGET_HOST}/bin/llvm-profdata merge \
+        export PATH="$(rustc --print sysroot)/lib/rustlib/${TARGET_HOST}/bin:$PATH"
+
+        llvm-profdata merge \
             --sparse \
-            --output=default.profdata \
+            --output=./target/profiles/default.profdata \
             $profiles
 
-        $(rustc --print sysroot)/lib/rustlib/${TARGET_HOST}/bin/llvm-cov export \
+        llvm-cov export \
             --ignore-filename-regex='library/std/src' \
             --ignore-filename-regex='cargo/registry/src' \
             ${OBJECT_ARGS} \
-            --instr-profile=default.profdata \
+            --instr-profile=./target/profiles/default.profdata \
             --format=lcov \
-            > coverage.lcov
+            > ./target/profiles/coverage.lcov
 
-        reportgenerator -reports:coverage.lcov -targetdir:"./artifacts" -reporttypes:"MarkdownSummaryGithub;TextSummary"
+        reportgenerator -reports:./target/profiles/coverage.lcov -targetdir:"./artifacts" -reporttypes:"MarkdownSummaryGithub;TextSummary"
 
-        reportgenerator -reports:coverage.lcov -targetdir:"./coverage_html" -reporttypes:"Html"
-        tar -C coverage_html -zcf ./artifacts/coverage.tar.gz .
+        reportgenerator -reports:./target/profiles/coverage.lcov -targetdir:"./target/coverage_html" -reporttypes:"Html"
+        tar -C ./target/coverage_html -zcf ./artifacts/coverage.tar.gz .
 
-        $(rustc --print sysroot)/lib/rustlib/${TARGET_HOST}/bin/llvm-cov report \
+        llvm-cov report \
             --ignore-filename-regex='library/std/src' \
             --ignore-filename-regex='cargo/registry/src' \
             ${OBJECT_ARGS} \
-            --instr-profile=default.profdata
+            --instr-profile=./target/profiles/default.profdata
 
     - name: Generate Coverage Report (Windows)
       if: matrix.os == 'windows-latest'
       env:
         RUSTFLAGS: '-C instrument-coverage'
       run: |
-        rustup component add llvm-tools-preview
+        rustup component add llvm-tools
         dotnet tool install -g dotnet-reportgenerator-globaltool
 
         $TARGET_HOST = $(rustup show active-toolchain) -replace '[^-]*-(?<host>.*)\s.*', '${host}'
         $TEST_BIN = ($(cargo test --no-run 2>&1) |? { "$_" -like '*Executable*' }) -replace '.*\((?<path>.*)\).*', '${path}'
         $OBJECT_ARGS = @($TEST_BIN) |% { "--object=$_" }
 
-        $profiles = @(Get-ChildItem -Path 'default_*.profraw' -Recurse)
+        $profiles = @(Get-ChildItem -Path '.\target\profiles\default_*.profraw' -Recurse)
 
-        & "$(rustc --print sysroot)\lib\rustlib\${TARGET_HOST}\bin\llvm-profdata.exe" merge `
+        $env:PATH ="$(rustc --print sysroot)\lib\rustlib\${TARGET_HOST}\bin;${env:PATH}"
+
+        llvm-profdata.exe merge `
             --sparse `
-            --output=default.profdata `
+            --output=.\target\profiles\default.profdata `
             @($profiles |% { $_.FullName })
 
-        & "$(rustc --print sysroot)\lib\rustlib\${TARGET_HOST}\bin\llvm-cov.exe" export `
-            --ignore-filename-regex='library\\std\\src' `
-            --ignore-filename-regex='cargo\\registry\\src' `
+        llvm-cov.exe export `
+            --ignore-filename-regex='library\std\src' `
+            --ignore-filename-regex='cargo\registry\src' `
             ${OBJECT_ARGS} `
-            --instr-profile=default.profdata `
+            --instr-profile=.\target\profiles\default.profdata `
             --format=lcov `
-            > coverage.lcov
+            > .\target\profiles\coverage.lcov
 
-        reportgenerator -reports:coverage.lcov -targetdir:".\artifacts" -reporttypes:"MarkdownSummaryGithub;TextSummary"
+        reportgenerator -reports:.\target\profiles\coverage.lcov -targetdir:".\artifacts" -reporttypes:"MarkdownSummaryGithub;TextSummary"
 
-        reportgenerator -reports:coverage.lcov -targetdir:".\coverage_html" -reporttypes:"Html"
-        Compress-Archive -Path 'coverage_html\*' -DestinationPath ".\artifacts\coverage.zip"
+        reportgenerator -reports:.\target\profiles\coverage.lcov -targetdir:".\target\coverage_html" -reporttypes:"Html"
+        Compress-Archive -Path '.\target\coverage_html\*' -DestinationPath ".\artifacts\coverage.zip"
 
-        & "$(rustc --print sysroot)\lib\rustlib\${TARGET_HOST}\bin\llvm-cov.exe" report `
-            --ignore-filename-regex='library\\std\\src' `
-            --ignore-filename-regex='cargo\\registry\\src' `
+        llvm-cov.exe report `
+            --ignore-filename-regex='library\std\src' `
+            --ignore-filename-regex='cargo\registry\src' `
             ${OBJECT_ARGS} `
-            --instr-profile=default.profdata
+            --instr-profile=.\target\profiles\default.profdata
 
     - name: Report Coverage (Ubuntu)
       if: matrix.os == 'ubuntu-latest'
@@ -156,6 +162,9 @@ jobs:
         tar -zcf "${CUR_DIR}/artifacts/help-${RUST_TARGET}.tar.gz" *
         popd
 
+        cargo install cargo-about
+        cargo about generate -o artifacts/license.html about.hbs
+
         echo "RUST_TARGET=${RUST_TARGET}" >> $GITHUB_ENV
 
     - name: Create Archive (Windows)
@@ -184,6 +193,9 @@ jobs:
         }
 
         Compress-Archive -Path 'target\doc\*' -DestinationPath ".\artifacts\help-${RUST_TARGET}.zip"
+
+        cargo install cargo-about
+        cargo about generate -o artifacts\license.html about.hbs
 
         Write-Output "RUST_TARGET=$RUST_TARGET" >> $env:GITHUB_ENV
 

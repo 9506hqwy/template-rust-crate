@@ -2,13 +2,42 @@
 
 This repository provides a template for Rust crate.
 
-## TODO
+## Prepare
 
-* Collect test coverage on vscode test running.
+1. Replace value in *Cargo.toml*.
+   * `repository`
+2. Update other content in *Cargo.toml*.
+3. Remove *example* directory.
 
 ## Development
 
-### Frame Graph
+### Formatting
+
+Format source code.
+
+```sh
+cargo fmt --all
+```
+
+### Linting
+
+Lint source code.
+
+```sh
+cargo clippy --fix
+```
+
+### Testing
+
+Execute test code.
+
+```sh
+cargo test
+```
+
+### Profiling
+
+#### Frame Graph
 
 Install dependencies tools.
 
@@ -19,15 +48,15 @@ sudo apt install -y linux-perf
 Generate frame graph.
 
 ```sh
-cargo flamegraph --example main
+cargo flamegraph -o target/flamegraph.svg --example main
 ```
 
-### Memory Profile
+#### Memory Profile
 
 Gather data.
 
 ```sh
-LD_PRELOAD=/usr/local/lib/libbytehound.so  <executable>
+LD_PRELOAD=/usr/local/lib/libbytehound.so <executable>
 ```
 
 Display data.
@@ -36,12 +65,20 @@ Display data.
 bytehound server memory-profiling_*.dat
 ```
 
-## Testing
+### Updating
 
-Execute test code.
+Check newer depenency crate.
 
 ```sh
-cargo test
+cargo outdated
+```
+
+### License Checking
+
+Check dependency license.
+
+```sh
+cargo about generate -o artifacts/license.html about.hbs
 ```
 
 ## Documentation
@@ -52,7 +89,7 @@ Generate API document.
 cargo doc
 ```
 
-## Building artifacts
+## Building Artifacts
 
 Build binary.
 
