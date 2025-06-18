@@ -194,7 +194,7 @@ jobs:
 
         Compress-Archive -Path 'target\doc\*' -DestinationPath ".\artifacts\help-${RUST_TARGET}.zip"
 
-        New-Item -Type Directory .\target\licenses
+        New-Item -Type Directory .\artifacts\licenses
         . "C:\Program Files\Git\bin\bash.exe" ./tools/cargo-licenses.sh -o artifacts/licenses
 
         Write-Output "RUST_TARGET=$RUST_TARGET" >> $env:GITHUB_ENV

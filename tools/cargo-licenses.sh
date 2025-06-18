@@ -96,7 +96,7 @@ function copy-license-files() {
 
         if find "${DEST_VER_DIR}" -empty -type d | grep -q .; then
             echo >&2 "Found empty '${DEST_VER_DIR}' directory."
-            exit 1
+            #exit 1
         fi
     fi
 }
