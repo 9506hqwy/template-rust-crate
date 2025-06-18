@@ -45,9 +45,6 @@ curl -fsSL -o - "https://github.com/mikefarah/yq/releases/download/v${YQ_VERSION
     tar -zxf - -O "./yq_linux_amd64" > ~/.local/bin/yq
 chmod +x ~/.local/bin/yq
 
-# Install cargo-about
-cargo install cargo-about
-
 # Install cargo-expand
 cargo install cargo-expand
 

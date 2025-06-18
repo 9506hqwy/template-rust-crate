@@ -75,10 +75,17 @@ cargo outdated
 
 ### License Checking
 
-Check dependency license.
+Check dependency licenses.
 
 ```sh
-cargo about generate -o artifacts/license.html about.hbs
+cargo tree --target all --format "{p} {l}"
+```
+
+Dump dependency licenses.
+
+```sh
+mkdir licenses
+./tools/cargo-licenses.sh -o licenses --target all
 ```
 
 ## Documentation

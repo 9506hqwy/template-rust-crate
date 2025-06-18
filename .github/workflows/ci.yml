@@ -162,8 +162,8 @@ jobs:
         tar -zcf "${CUR_DIR}/artifacts/help-${RUST_TARGET}.tar.gz" *
         popd
 
-        cargo install cargo-about
-        cargo about generate -o artifacts/license.html about.hbs
+        mkdir -p artifacts/licenses
+        ./tools/cargo-licenses.sh -o artifacts/licenses
 
         echo "RUST_TARGET=${RUST_TARGET}" >> $GITHUB_ENV
 
@@ -194,8 +194,8 @@ jobs:
 
         Compress-Archive -Path 'target\doc\*' -DestinationPath ".\artifacts\help-${RUST_TARGET}.zip"
 
-        cargo install cargo-about
-        cargo about generate -o artifacts\license.html about.hbs
+        New-Item -Type Directory .\target\licenses
+        . "C:\Program Files\Git\bin\bash.exe" ./tools/cargo-licenses.sh -o artifacts/licenses
 
         Write-Output "RUST_TARGET=$RUST_TARGET" >> $env:GITHUB_ENV
 

@@ -30,18 +30,23 @@ jobs:
       run: |
         RUST_TARGET=`rustup show active-toolchain | sed -e 's/[^-]*-\(.*\)\s.*/\1/'`
 
+        CUR_DIR=$(pwd)
         mkdir artifacts
 
-        cargo install cargo-about
-        cargo about generate -o target/license.html about.hbs
+        mkdir -p target/licenses
+        ./tools/cargo-licenses.sh -o target/licenses -e "normal"
+        pushd target/licenses && tar -zcf "${CUR_DIR}/target/licenses.tar.gz" * && popd
 
-        CUR_DIR=$(pwd)
+        mkdir -p target/licenses-dev
+        ./tools/cargo-licenses.sh -o target/licenses-dev -e "normal,dev"
+        pushd target/licenses && tar -zcf "${CUR_DIR}/target/licenses-dev.tar.gz" * && popd
+
         LIB_DIR='./target/release'
         pushd "$LIB_DIR"
         FILES=$(find . -maxdepth 1 -type f \( -name '*.so' -o -name '*.a' -o -executable \))
         if [[ -n $FILES ]] ; then
-            cp -f "${CUR_DIR}/target/license.html" .
-            tar -zcf "${CUR_DIR}/artifacts/${RUST_TARGET}.tar.gz" $FILES license.html
+            cp -f "${CUR_DIR}/target/licenses.tar.gz" .
+            tar -zcf "${CUR_DIR}/artifacts/${RUST_TARGET}.tar.gz" $FILES licenses.tar.gz
         fi
         popd
 
@@ -50,8 +55,8 @@ jobs:
         do
             BASE_NAME=$(basename "${EXAMPLE}")
             if [[ ! $BASE_NAME =~ -[a-fA-F0-9]{16}$ ]] ; then
-                cp -f "${CUR_DIR}/target/license.html" "$EXAMPLE_DIR"
-                tar -C "$EXAMPLE_DIR" -zcf "./artifacts/${BASE_NAME}-${RUST_TARGET}.tar.gz" "$BASE_NAME" license.html
+                cp -f "${CUR_DIR}/target/licenses-dev.tar.gz" "$EXAMPLE_DIR"
+                tar -C "$EXAMPLE_DIR" -zcf "./artifacts/${BASE_NAME}-${RUST_TARGET}.tar.gz" "$BASE_NAME" licenses-dev.tar.gz
             fi
         done
 
@@ -68,8 +73,13 @@ jobs:
 
         New-Item -Type Directory artifacts
 
-        cargo install cargo-about
-        cargo about generate -o target\license.html about.hbs
+        New-Item -Type Directory .\target\licenses
+        . "C:\Program Files\Git\bin\bash.exe" ./tools/cargo-licenses.sh -o target/licenses -e "normal"
+        Compress-Archive -Path .\target\licenses\* -DestinationPath .\target\licenses.zip
+
+        New-Item -Type Directory .\target\licenses-dev
+        . "C:\Program Files\Git\bin\bash.exe" ./tools/cargo-licenses.sh -o target/licenses-dev -e "normal,dev"
+        Compress-Archive -Path .\target\licenses-dev\* -DestinationPath .\target\licenses-dev.zip
 
         $TARGETS = @(
           'target\release\*.exe',
@@ -79,7 +89,7 @@ jobs:
         )
         $LIBS = @(Get-Item -Path $TARGETS)
         if ($LIBS.Length -gt 0) {
-            $LIBS += 'target\license.html'
+            $LIBS += 'target\licenses.zip'
             Compress-Archive -Path $LIBS -DestinationPath ".\artifacts\${RUST_TARGET}.zip"
         }
 
@@ -88,7 +98,7 @@ jobs:
                 return
             }
 
-            $EXE = @($_.FullName,'target\license.html')
+            $EXE = @($_.FullName,'target\licenses-dev.zip')
             $Name = $_.BaseName;
             Compress-Archive -Path $EXE -DestinationPath ".\artifacts\${Name}-${RUST_TARGET}.zip";
         }
