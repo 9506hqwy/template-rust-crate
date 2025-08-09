@@ -101,9 +101,12 @@ function copy-license-files() {
     fi
 }
 
+export CARGO_TERM_COLOR=never
+
 METADATA_ALL=$(cargo metadata --format-version 1)
 
-DEPS=("$(cargo tree "${TREE_ARGS[@]}" | grep -v 'build-dependencies' | grep -v 'dev-dependencies' | sed -e 's/[^a-z]*\([^ ]*\).*/\1/' | sort | uniq)")
+# shellcheck disable=SC2207
+DEPS=($(cargo tree --prefix none --no-dedupe "${TREE_ARGS[@]}" | cut -d ' ' -f 1 | sort | uniq))
 for DEP in "${DEPS[@]}"
 do
     METADATA_DEP=$(jq -c ".packages | map(select(.name==\"${DEP}\")) | first" <<< "${METADATA_ALL}")
