@@ -4,124 +4,28 @@ on:
   push:
     tags: [ '**' ]
 
-env:
-  CARGO_TERM_COLOR: always
+permissions:
+  contents: read
 
 jobs:
-  build:
+  ubuntu:
+    uses: 9506hqwy/actions/.github/workflows/rust-release-ubuntu.yml@main
 
-    runs-on: ${{ matrix.os }}
-
-    strategy:
-      matrix:
-        os: [ubuntu-latest, windows-latest]
-
-    steps:
-    - uses: actions/checkout@v4
-
-    - name: Create Artifacts
-      run: |
-        cargo build --release --workspace --all-features --verbose
-        cargo build --release --workspace --all-features --examples --verbose
-        cargo doc --workspace --all-features --verbose
-
-    - name: Create Archive (Ubuntu)
-      if: matrix.os == 'ubuntu-latest'
-      run: |
-        RUST_TARGET=`rustup show active-toolchain | sed -e 's/[^-]*-\(.*\)\s.*/\1/'`
-
-        CUR_DIR=$(pwd)
-        mkdir artifacts
-
-        mkdir -p target/licenses
-        ./tools/cargo-licenses.sh -o target/licenses -e "normal"
-        pushd target/licenses && tar -zcf "${CUR_DIR}/target/licenses.tar.gz" * && popd
-
-        mkdir -p target/licenses-dev
-        ./tools/cargo-licenses.sh -o target/licenses-dev -e "normal,dev"
-        pushd target/licenses && tar -zcf "${CUR_DIR}/target/licenses-dev.tar.gz" * && popd
-
-        LIB_DIR='./target/release'
-        pushd "$LIB_DIR"
-        FILES=$(find . -maxdepth 1 -type f \( -name '*.so' -o -name '*.a' -o -executable \))
-        if [[ -n $FILES ]] ; then
-            cp -f "${CUR_DIR}/target/licenses.tar.gz" .
-            tar -zcf "${CUR_DIR}/artifacts/${RUST_TARGET}.tar.gz" $FILES licenses.tar.gz
-        fi
-        popd
-
-        EXAMPLE_DIR='./target/release/examples/'
-        for EXAMPLE in $(find "$EXAMPLE_DIR" -type f -executable)
-        do
-            BASE_NAME=$(basename "${EXAMPLE}")
-            if [[ ! $BASE_NAME =~ -[a-fA-F0-9]{16}$ ]] ; then
-                cp -f "${CUR_DIR}/target/licenses-dev.tar.gz" "$EXAMPLE_DIR"
-                tar -C "$EXAMPLE_DIR" -zcf "./artifacts/${BASE_NAME}-${RUST_TARGET}.tar.gz" "$BASE_NAME" licenses-dev.tar.gz
-            fi
-        done
-
-        pushd "./target/doc"
-        tar -zcf "${CUR_DIR}/artifacts/help-${RUST_TARGET}.tar.gz" *
-        popd
-
-        echo "RUST_TARGET=${RUST_TARGET}" >> $GITHUB_ENV
-
-    - name: Create Archive (Windows)
-      if: matrix.os == 'windows-latest'
-      run: |
-        $RUST_TARGET = $(rustup show active-toolchain) -replace '[^-]*-(?<host>.*)\s.*', '${host}'
-
-        New-Item -Type Directory artifacts
-
-        New-Item -Type Directory .\target\licenses
-        . "C:\Program Files\Git\bin\bash.exe" ./tools/cargo-licenses.sh -o target/licenses -e "normal"
-        Compress-Archive -Path .\target\licenses\* -DestinationPath .\target\licenses.zip
-
-        New-Item -Type Directory .\target\licenses-dev
-        . "C:\Program Files\Git\bin\bash.exe" ./tools/cargo-licenses.sh -o target/licenses-dev -e "normal,dev"
-        Compress-Archive -Path .\target\licenses-dev\* -DestinationPath .\target\licenses-dev.zip
-
-        $TARGETS = @(
-          'target\release\*.exe',
-          'target\release\*.dll',
-          'target\release\*.exp',
-          'target\release\*.lib'
-        )
-        $LIBS = @(Get-Item -Path $TARGETS)
-        if ($LIBS.Length -gt 0) {
-            $LIBS += 'target\licenses.zip'
-            Compress-Archive -Path $LIBS -DestinationPath ".\artifacts\${RUST_TARGET}.zip"
-        }
-
-        Get-Item -Path 'target\release\examples\*.exe' |% {
-            if ($_.Name.Contains('_') -And (Test-Path (Join-Path $_.Directory $_.Name.Replace('_', '-')))) {
-                return
-            }
-
-            $EXE = @($_.FullName,'target\licenses-dev.zip')
-            $Name = $_.BaseName;
-            Compress-Archive -Path $EXE -DestinationPath ".\artifacts\${Name}-${RUST_TARGET}.zip";
-        }
-
-        Compress-Archive -Path 'target\doc\*' -DestinationPath ".\artifacts\help-${RUST_TARGET}.zip"
-
-        Write-Output "RUST_TARGET=$RUST_TARGET" >> $env:GITHUB_ENV
-
-    - name: Upload Artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: ${{ env.RUST_TARGET }}
-        path: artifacts/
-        retention-days: 1
+  windows:
+    uses: 9506hqwy/actions/.github/workflows/rust-release-windows.yml@main
 
   release:
 
-    needs: build
+    needs: [ubuntu, windows]
 
     runs-on: ubuntu-latest
 
+    permissions:
+      contents: write
+
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout Source Code
+      uses: actions/checkout@v5
 
     - uses: actions/download-artifact@v4
       with:
@@ -132,4 +36,4 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         gh config set prompt disabled
-        gh release create ${GITHUB_REF_NAME} ./artifacts/*/*  -t v${GITHUB_REF_NAME} -d
+        gh release create "${GITHUB_REF_NAME}" ./artifacts/*/*  -t "v${GITHUB_REF_NAME}" -d
