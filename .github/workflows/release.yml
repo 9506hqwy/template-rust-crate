@@ -18,22 +18,9 @@ jobs:
 
     needs: [ubuntu, windows]
 
-    runs-on: ubuntu-latest
-
     permissions:
       contents: write
 
-    steps:
-    - name: Checkout Source Code
-      uses: actions/checkout@v5
-
-    - uses: actions/download-artifact@v4
-      with:
-        path: artifacts
-
-    - name: Create Release
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: |
-        gh config set prompt disabled
-        gh release create "${GITHUB_REF_NAME}" ./artifacts/*/*  -t "v${GITHUB_REF_NAME}" -d
+    uses: 9506hqwy/actions/.github/workflows/common-create-release.yml@main
+    with:
+      title-prefix: v
