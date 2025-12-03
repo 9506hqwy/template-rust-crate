@@ -3,7 +3,12 @@ set -euo pipefail
 
 # Install dependencies
 sudo apt-get update
-sudo apt-get install -y linux-perf shellcheck zstd
+sudo apt-get install -y \
+    build-essential \
+    gcc-mingw-w64-x86-64-win32 \
+    linux-perf \
+    shellcheck \
+    zstd
 
 # Configuration PATH
 mkdir -p ~/.local/bin
@@ -71,3 +76,6 @@ curl -sSLO --output-dir /tmp "https://github.com/koute/bytehound/releases/downlo
 tar -C /tmp -zxf /tmp/"${MEM_PKG}"
 sudo mv /tmp/{bytehound,bytehound-gather} /usr/local/bin
 sudo mv /tmp/libbytehound.so /usr/local/lib
+
+## Add the Windows target for cross-compilation.
+rustup target add x86_64-pc-windows-gnu

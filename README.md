@@ -103,3 +103,9 @@ Build binary.
 ```sh
 cargo build
 ```
+
+Build binary for windows.
+
+```sh
+cargo build --target x86_64-pc-windows-gnu
+```
