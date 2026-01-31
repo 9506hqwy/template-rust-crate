@@ -7,6 +7,7 @@ sudo apt-get install -y \
     build-essential \
     gcc-mingw-w64-x86-64-win32 \
     linux-perf \
+    musl-tools \
     shellcheck \
     zstd
 
@@ -79,3 +80,6 @@ sudo mv /tmp/libbytehound.so /usr/local/lib
 
 ## Add the Windows target for cross-compilation.
 rustup target add x86_64-pc-windows-gnu
+
+## Add the Linux target for musl.
+rustup target add x86_64-unknown-linux-musl

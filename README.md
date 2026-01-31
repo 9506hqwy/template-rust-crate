@@ -109,3 +109,9 @@ Build binary for windows.
 ```sh
 cargo build --target x86_64-pc-windows-gnu
 ```
+
+Build binary for musl.
+
+```sh
+cargo build --target x86_64-unknown-linux-musl
+```
